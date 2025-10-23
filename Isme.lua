@@ -1,4 +1,4 @@
-local IS = loadstring(game:HttpGet("tu_url_aqui"))()
+local IS = loadstring(game:HttpGet("https://raw.githubusercontent.com/ELPAPIMC/LIBRARYS/refs/heads/main/IS.lua"))()
 
 -- Crear ventana
 local Window = IS:CreateWindow({
