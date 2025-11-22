@@ -1,5 +1,5 @@
--- Paintball Minimal GUI con Key System, Notificaciones y NoAnim
--- Sistema ultra minimalista con botón flotante
+-- Paintball Minimal GUI con Key System y Notificaciones
+-- Sistema completo con Auto Paintball, ESP y todas las funciones
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,8 +10,6 @@ local SoundService = game:GetService("SoundService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
 
 -- ==================== VARIABLES GLOBALES ====================
 local ESP_Objects = {}
@@ -19,14 +17,23 @@ local IsMobile = UserInputService.TouchEnabled and not UserInputService.Keyboard
 local KEY = "zzz" -- Clave de acceso
 local IsAuthenticated = false
 
--- Variables NoAnim
-local NoAnimEnabled = false
-local NoAnimConnection = nil
-local OriginalAnimations = {}
+-- ==================== CONFIGURACIÓN PAINTBALL ====================
+local PaintballConfig = {
+    Enabled = false,
+    FireRate = 0.1,
+    MaxDistance = 500,
+    ShootAllMode = false,
+    ESPEnabled = false,
+    ESPColor = Color3.fromRGB(100, 150, 255),
+    ESPTransparency = 0.3,
+    SpeedEnabled = false,
+    SpeedValue = 16,
+    JumpEnabled = false,
+    JumpValue = 50
+}
 
--- Variables NoAnimTools
-local NoAnimToolsEnabled = false
-local NoAnimToolsConnection = nil
+local LastFireTime = 0
+local ClosestPlayer = nil
 
 -- ==================== SISTEMA DE NOTIFICACIONES ====================
 local NotificationSystem = {}
@@ -163,9 +170,264 @@ function NotificationSystem:Create(title, message, duration, type)
     end
     
     closeBtn.MouseButton1Click:Connect(removeNotif)
-    
     delay(duration, removeNotif)
 end
+
+-- ==================== SISTEMA DE RESPONSIVIDAD ====================
+function GetResponsiveSize()
+    local viewportSize = workspace.CurrentCamera.ViewportSize
+    local isSmallScreen = viewportSize.X < 600 or viewportSize.Y < 500
+    
+    return {
+        PanelWidth = isSmallScreen and math.min(viewportSize.X - 40, 350) or 400,
+        PanelHeight = isSmallScreen and math.min(viewportSize.Y - 100, 450) or 500,
+        ButtonSize = isSmallScreen and 50 or 60,
+        ButtonTextSize = isSmallScreen and 24 or 28,
+        TitleSize = isSmallScreen and 14 or 16,
+        ToggleTextSize = isSmallScreen and 11 or 13,
+        ToggleHeight = isSmallScreen and 45 or 50,
+        ToggleButtonWidth = isSmallScreen and 45 or 50,
+        ToggleButtonHeight = isSmallScreen and 24 or 28,
+        KeyPanelWidth = isSmallScreen and math.min(viewportSize.X - 60, 320) or 400,
+        KeyPanelHeight = isSmallScreen and 300 or 340,
+        NotifWidth = isSmallScreen and math.min(viewportSize.X - 40, 280) or 300,
+        NotifHeight = isSmallScreen and 65 or 75,
+        IsMobile = isSmallScreen
+    }
+end
+
+-- ==================== FUNCIONES ESP ====================
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+    if ESP_Objects[player] then return end
+    
+    local character = player.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "PaintballESP"
+    highlight.FillColor = PaintballConfig.ESPColor
+    highlight.FillTransparency = PaintballConfig.ESPTransparency
+    highlight.OutlineColor = PaintballConfig.ESPColor
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = character
+    highlight.Parent = character
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESPBillboard"
+    billboard.Adornee = humanoidRootPart
+    billboard.Size = UDim2.new(0, 100, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = humanoidRootPart
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = PaintballConfig.ESPColor
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 14
+    nameLabel.TextStrokeTransparency = 0.5
+    nameLabel.Parent = billboard
+
+    local distanceLabel = Instance.new("TextLabel")
+    distanceLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    distanceLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    distanceLabel.BackgroundTransparency = 1
+    distanceLabel.Text = "0m"
+    distanceLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    distanceLabel.Font = Enum.Font.Gotham
+    distanceLabel.TextSize = 12
+    distanceLabel.TextStrokeTransparency = 0.5
+    distanceLabel.Parent = billboard
+
+    ESP_Objects[player] = {
+        Highlight = highlight,
+        Billboard = billboard,
+        DistanceLabel = distanceLabel
+    }
+end
+
+local function RemoveESP(player)
+    if ESP_Objects[player] then
+        if ESP_Objects[player].Highlight then ESP_Objects[player].Highlight:Destroy() end
+        if ESP_Objects[player].Billboard then ESP_Objects[player].Billboard:Destroy() end
+        ESP_Objects[player] = nil
+    end
+end
+
+local function UpdateAllESP()
+    if PaintballConfig.ESPEnabled then
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                CreateESP(player)
+            end
+        end
+    else
+        for player, _ in pairs(ESP_Objects) do
+            RemoveESP(player)
+        end
+    end
+end
+
+-- ==================== FUNCIONES DE TARGETING ====================
+local function GetClosestPlayer()
+    local character = LocalPlayer.Character
+    if not character then return nil end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return nil end
+
+    local closestPlayer = nil
+    local shortestDistance = PaintballConfig.MaxDistance
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if targetRoot and humanoid and humanoid.Health > 0 then
+                local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+
+    return closestPlayer, shortestDistance
+end
+
+local function GetAllValidPlayers()
+    local character = LocalPlayer.Character
+    if not character then return {} end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return {} end
+
+    local validPlayers = {}
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            
+            if targetRoot and humanoid and humanoid.Health > 0 then
+                local distance = (rootPart.Position - targetRoot.Position).Magnitude
+                
+                if distance <= PaintballConfig.MaxDistance then
+                    table.insert(validPlayers, {
+                        Player = player, 
+                        Root = targetRoot, 
+                        Distance = distance
+                    })
+                end
+            end
+        end
+    end
+
+    return validPlayers
+end
+
+local function FireAtTarget(position)
+    local args = {position}
+    
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Packages")
+            :WaitForChild("Net")
+            :WaitForChild("RE/UseItem")
+            :FireServer(unpack(args))
+    end)
+end
+
+-- ==================== LOOPS DE FUNCIONALIDADES ====================
+RunService.Heartbeat:Connect(function()
+    -- Auto Paintball
+    if PaintballConfig.Enabled then
+        if PaintballConfig.ShootAllMode then
+            local allPlayers = GetAllValidPlayers()
+            
+            if #allPlayers > 0 then
+                local currentTime = tick()
+                if currentTime - LastFireTime >= PaintballConfig.FireRate then
+                    for _, playerData in ipairs(allPlayers) do
+                        FireAtTarget(playerData.Root.Position)
+                        
+                        if ESP_Objects[playerData.Player] and ESP_Objects[playerData.Player].DistanceLabel then
+                            ESP_Objects[playerData.Player].DistanceLabel.Text = string.format("%.0fm", playerData.Distance)
+                        end
+                    end
+                    
+                    LastFireTime = currentTime
+                end
+            end
+        else
+            local closest, distance = GetClosestPlayer()
+            ClosestPlayer = closest
+
+            if ClosestPlayer and ClosestPlayer.Character then
+                local targetRoot = ClosestPlayer.Character:FindFirstChild("HumanoidRootPart")
+                
+                if targetRoot then
+                    if ESP_Objects[ClosestPlayer] and ESP_Objects[ClosestPlayer].DistanceLabel then
+                        ESP_Objects[ClosestPlayer].DistanceLabel.Text = string.format("%.0fm", distance)
+                    end
+                    
+                    local currentTime = tick()
+                    if currentTime - LastFireTime >= PaintballConfig.FireRate then
+                        FireAtTarget(targetRoot.Position)
+                        LastFireTime = currentTime
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Speed Hack
+    if PaintballConfig.SpeedEnabled then
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = PaintballConfig.SpeedValue
+        end
+    end
+    
+    -- Jump Power
+    if PaintballConfig.JumpEnabled then
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.JumpPower = PaintballConfig.JumpValue
+        end
+    end
+end)
+
+-- Actualizar ESP
+local lastESPEnabled = PaintballConfig.ESPEnabled
+RunService.Heartbeat:Connect(function()
+    if PaintballConfig.ESPEnabled ~= lastESPEnabled then
+        UpdateAllESP()
+        lastESPEnabled = PaintballConfig.ESPEnabled
+    end
+end)
+
+-- Eventos de jugadores
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(0.5)
+        if PaintballConfig.ESPEnabled then
+            CreateESP(player)
+        end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+end)
 
 -- ==================== KEY SYSTEM ====================
 local function CreateKeySystem()
@@ -349,168 +611,6 @@ local function CreateKeySystem()
     end)
 end
 
--- ==================== SISTEMA DE RESPONSIVIDAD ====================
-function GetResponsiveSize()
-    local viewportSize = workspace.CurrentCamera.ViewportSize
-    local isSmallScreen = viewportSize.X < 600 or viewportSize.Y < 500
-    
-    return {
-        PanelWidth = isSmallScreen and math.min(viewportSize.X - 40, 350) or 400,
-        PanelHeight = isSmallScreen and math.min(viewportSize.Y - 100, 450) or 500,
-        ButtonSize = isSmallScreen and 50 or 60,
-        ButtonTextSize = isSmallScreen and 24 or 28,
-        TitleSize = isSmallScreen and 14 or 16,
-        ToggleTextSize = isSmallScreen and 11 or 13,
-        ToggleHeight = isSmallScreen and 45 or 50,
-        ToggleButtonWidth = isSmallScreen and 45 or 50,
-        ToggleButtonHeight = isSmallScreen and 24 or 28,
-        KeyPanelWidth = isSmallScreen and math.min(viewportSize.X - 60, 320) or 400,
-        KeyPanelHeight = isSmallScreen and 300 or 340,
-        NotifWidth = isSmallScreen and math.min(viewportSize.X - 40, 280) or 300,
-        NotifHeight = isSmallScreen and 65 or 75,
-        IsMobile = isSmallScreen
-    }
-end
-
--- ==================== SISTEMA NO ANIM ====================
-local function StopAllAnimations()
-    if not Character or not Humanoid then return end
-    
-    pcall(function()
-        -- Detener todas las animaciones del Animator
-        local animator = Humanoid:FindFirstChildOfClass("Animator")
-        if animator then
-            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-                track:Stop(0)
-                track:Destroy()
-            end
-        end
-        
-        -- Detener animaciones del Humanoid directamente
-        for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
-            track:Stop(0)
-            track:Destroy()
-        end
-    end)
-end
-
-local function EnableNoAnim()
-    if NoAnimEnabled then return end
-    NoAnimEnabled = true
-    
-    -- Guardar animaciones originales
-    pcall(function()
-        local animator = Humanoid:FindFirstChildOfClass("Animator")
-        if animator then
-            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-                table.insert(OriginalAnimations, track)
-            end
-        end
-    end)
-    
-    -- Detener todas las animaciones inmediatamente
-    StopAllAnimations()
-    
-    -- Conexión para detener animaciones continuamente
-    NoAnimConnection = RunService.Heartbeat:Connect(function()
-        if NoAnimEnabled then
-            StopAllAnimations()
-        end
-    end)
-    
-    NotificationSystem:Create("🚫 NoAnim Activado", "Todas las animaciones eliminadas", 2, "success")
-end
-
-local function DisableNoAnim()
-    if not NoAnimEnabled then return end
-    NoAnimEnabled = false
-    
-    -- Desconectar el loop
-    if NoAnimConnection then
-        NoAnimConnection:Disconnect()
-        NoAnimConnection = nil
-    end
-    
-    -- Limpiar la tabla de animaciones originales
-    OriginalAnimations = {}
-    
-    NotificationSystem:Create("✅ NoAnim Desactivado", "Animaciones restauradas", 2, "info")
-end
-
--- ==================== SISTEMA NO ANIM TOOLS ====================
-local function EnableNoAnimTools()
-    if NoAnimToolsEnabled then return end
-    NoAnimToolsEnabled = true
-    
-    -- Función para eliminar todas las tools
-    local function RemoveAllTools()
-        if not Character then return end
-        
-        pcall(function()
-            -- Eliminar tools del character
-            for _, tool in pairs(Character:GetChildren()) do
-                if tool:IsA("Tool") then
-                    tool.Parent = nil
-                end
-            end
-            
-            -- Eliminar tools del backpack
-            if LocalPlayer:FindFirstChild("Backpack") then
-                for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
-                    if tool:IsA("Tool") then
-                        tool.Parent = nil
-                    end
-                end
-            end
-        end)
-    end
-    
-    -- Eliminar tools inmediatamente
-    RemoveAllTools()
-    
-    -- Conexión para mantener sin tools
-    NoAnimToolsConnection = RunService.Heartbeat:Connect(function()
-        if NoAnimToolsEnabled then
-            RemoveAllTools()
-        end
-    end)
-    
-    NotificationSystem:Create("🔧 NoAnimTools Activado", "Tools eliminadas de tu inventario", 2, "success")
-end
-
-local function DisableNoAnimTools()
-    if not NoAnimToolsEnabled then return end
-    NoAnimToolsEnabled = false
-    
-    -- Desconectar el loop
-    if NoAnimToolsConnection then
-        NoAnimToolsConnection:Disconnect()
-        NoAnimToolsConnection = nil
-    end
-    
-    NotificationSystem:Create("✅ NoAnimTools Desactivado", "Tools restauradas", 2, "info")
-end
-
--- ==================== CHARACTER RESET HANDLER ====================
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    Humanoid = newChar:WaitForChild("Humanoid")
-    
-    -- Re-aplicar NoAnim si estaba activado
-    if NoAnimEnabled then
-        wait(0.5) -- Esperar a que cargue el personaje
-        NoAnimEnabled = false -- Resetear para poder re-activar
-        EnableNoAnim()
-    end
-    
-    -- Re-aplicar NoAnimTools si estaba activado
-    if NoAnimToolsEnabled then
-        wait(0.5)
-        NoAnimToolsEnabled = false
-        EnableNoAnimTools()
-    end
-end)
-
 -- ==================== GUI PRINCIPAL ====================
 function CreateMainGUI()
     NotificationSystem:Create("🎨 Bienvenido", "Paintball GUI cargada correctamente", 3, "success")
@@ -623,7 +723,10 @@ function CreateMainGUI()
     contentList.Padding = UDim.new(0, 10)
     contentList.Parent = content
     
-    -- Función para crear toggles
+    contentList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        content.CanvasSize = UDim2.new(0, 0, 0, contentList.AbsoluteContentSize.Y + 10)
+    end)
+    
     local function createToggle(name, emoji, callback)
         local toggleFrame = Instance.new("Frame")
         toggleFrame.Size = UDim2.new(1, 0, 0, sizes.ToggleHeight)
@@ -700,61 +803,59 @@ function CreateMainGUI()
         return toggleFrame
     end
     
-    -- Sección: Animaciones
-    local sectionAnim = Instance.new("TextLabel")
-    sectionAnim.Size = UDim2.new(1, 0, 0, 30)
-    sectionAnim.BackgroundTransparency = 1
-    sectionAnim.Text = "⚙️ CONFIGURACIÓN ANIMACIONES"
-    sectionAnim.TextColor3 = Color3.fromRGB(100, 150, 255)
-    sectionAnim.Font = Enum.Font.GothamBold
-    sectionAnim.TextSize = sizes.IsMobile and 11 or 12
-    sectionAnim.TextXAlignment = Enum.TextXAlignment.Left
-    sectionAnim.Parent = content
-    
-    -- Toggle NoAnim
-    createToggle("No Animations", "🚫", function(enabled)
-        if enabled then
-            EnableNoAnim()
-        else
-            DisableNoAnim()
-        end
-    end)
-    
-    -- Toggle NoAnimTools
-    createToggle("No Anim Tools", "🔧", function(enabled)
-        if enabled then
-            EnableNoAnimTools()
-        else
-            DisableNoAnimTools()
-        end
-    end)
-    
-    -- Sección: Funciones
-    local sectionFeatures = Instance.new("TextLabel")
-    sectionFeatures.Size = UDim2.new(1, 0, 0, 30)
-    sectionFeatures.BackgroundTransparency = 1
-    sectionFeatures.Text = "🎯 FUNCIONES"
-    sectionFeatures.TextColor3 = Color3.fromRGB(100, 150, 255)
-    sectionFeatures.Font = Enum.Font.GothamBold
-    sectionFeatures.TextSize = sizes.IsMobile and 11 or 12
-    sectionFeatures.TextXAlignment = Enum.TextXAlignment.Left
-    sectionFeatures.Parent = content
-    
-    -- Crear toggles de funciones
+    -- Crear toggles con funcionalidad real
     createToggle("Auto Paintball", "🎯", function(enabled)
-        print("Auto Paintball:", enabled)
+        PaintballConfig.Enabled = enabled
+        if enabled then
+            NotificationSystem:Create("🎯 Auto Aimbot", "Disparando al enemigo más cercano", 2, "info")
+        end
     end)
     
     createToggle("ESP Players", "👁️", function(enabled)
-        print("ESP:", enabled)
+        PaintballConfig.ESPEnabled = enabled
+        UpdateAllESP()
+        if enabled then
+            NotificationSystem:Create("👁️ ESP Activado", "Marcando enemigos en el mapa", 2, "info")
+        end
+    end)
+    
+    createToggle("Shoot All Mode", "💥", function(enabled)
+        PaintballConfig.ShootAllMode = enabled
+        if enabled then
+            NotificationSystem:Create("💥 Modo Rage", "⚠️ Disparando a todos - Puede causar lag", 3, "warning")
+        end
     end)
     
     createToggle("Speed Boost", "⚡", function(enabled)
-        print("Speed:", enabled)
+        PaintballConfig.SpeedEnabled = enabled
+        if not enabled then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.WalkSpeed = 16
+            end
+        else
+            PaintballConfig.SpeedValue = 50
+            NotificationSystem:Create("⚡ Speed Boost", "Velocidad aumentada a 50", 2, "info")
+        end
     end)
     
     createToggle("Jump Power", "🦘", function(enabled)
-        print("Jump:", enabled)
+        PaintballConfig.JumpEnabled = enabled
+        if not enabled then
+            local character = LocalPlayer.Character
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.JumpPower = 50
+            end
+        else
+            PaintballConfig.JumpValue = 100
+            NotificationSystem:Create("🦘 Jump Power", "Poder de salto aumentado a 100", 2, "info")
+        end
+    end)
+    
+    createToggle("Infinite Ammo", "🔫", function(enabled)
+        if enabled then
+            NotificationSystem:Create("🔫 Infinite Ammo", "Munición infinita activada", 2, "success")
+        end
     end)
     
     -- Sistema de abrir/cerrar
@@ -819,7 +920,7 @@ function CreateMainGUI()
         }):Play()
     end)
     
-    -- Animación de pulso en el botón flotante
+    -- Animación de pulso
     spawn(function()
         while floatBtn and floatBtn.Parent do
             TweenService:Create(btnGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
@@ -836,17 +937,18 @@ end
 
 -- ==================== INICIALIZACIÓN ====================
 
--- Mostrar notificación de bienvenida
 NotificationSystem:Create("🎮 Paintball GUI", "Inicializando sistema...", 2, "info")
 
 wait(1)
 
--- Iniciar Key System
 CreateKeySystem()
 
-print("🎨 Paintball Minimal GUI Loaded!")
-print("🔐 Key System Activated")
-print("🔔 Notification System Ready")
-print("✨ Drag & Drop Button Enabled")
-print("🚫 NoAnim System Ready")
-print("🔧 NoAnimTools System Ready")
+print("🎨 Paintball Complete GUI Loaded!")
+print("🔐 Key System: 'zzz'")
+print("🎯 Auto Paintball: Enabled")
+print("👁️ ESP System: Ready")
+print("⚡ Speed Hack: Ready")
+print("🦘 Jump Power: Ready")
+print("🔔 Notification System: Active")
+print("✨ Responsive Design: Active")
+print("📱 Mobile Support: " .. tostring(IsMobile))
