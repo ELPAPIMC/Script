@@ -1,4 +1,4 @@
--- Paintball Minimal GUI con Key System y Notificaciones
+-- Paintball Minimal GUI con Key System, Notificaciones y NoAnim
 -- Sistema ultra minimalista con botón flotante
 
 local Players = game:GetService("Players")
@@ -10,12 +10,23 @@ local SoundService = game:GetService("SoundService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
 
 -- ==================== VARIABLES GLOBALES ====================
 local ESP_Objects = {}
 local IsMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local KEY = "zzz" -- Clave de acceso
 local IsAuthenticated = false
+
+-- Variables NoAnim
+local NoAnimEnabled = false
+local NoAnimConnection = nil
+local OriginalAnimations = {}
+
+-- Variables NoAnimTools
+local NoAnimToolsEnabled = false
+local NoAnimToolsConnection = nil
 
 -- ==================== SISTEMA DE NOTIFICACIONES ====================
 local NotificationSystem = {}
@@ -24,7 +35,7 @@ NotificationSystem.Active = {}
 
 function NotificationSystem:Create(title, message, duration, type)
     duration = duration or 3
-    type = type or "info" -- info, success, warning, error
+    type = type or "info"
     
     local sizes = GetResponsiveSize()
     
@@ -36,12 +47,14 @@ function NotificationSystem:Create(title, message, duration, type)
     }
     
     -- Sonido de notificación
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://6647898270" -- Sonido suave de notificación
-    sound.Volume = 0.5
-    sound.Parent = SoundService
-    sound:Play()
-    game:GetService("Debris"):AddItem(sound, 2)
+    pcall(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://6647898270"
+        sound.Volume = 0.5
+        sound.Parent = SoundService
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 2)
+    end)
     
     -- Container de notificaciones
     local notifContainer = PlayerGui:FindFirstChild("NotificationContainer")
@@ -66,16 +79,14 @@ function NotificationSystem:Create(title, message, duration, type)
     notifCorner.CornerRadius = UDim.new(0, 12)
     notifCorner.Parent = notif
     
-    -- Barra de color
     local colorBar = Instance.new("Frame")
     colorBar.Size = UDim2.new(0, 4, 1, 0)
     colorBar.BackgroundColor3 = colors[type]
     colorBar.BorderSizePixel = 0
     colorBar.Parent = notif
     
-    -- Título
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -50, 0, sizes.IsMobile and 18 : 20)
+    titleLabel.Size = UDim2.new(1, -50, 0, sizes.IsMobile and 18 or 20)
     titleLabel.Position = UDim2.new(0, sizes.IsMobile and 12 or 15, 0, sizes.IsMobile and 8 or 10)
     titleLabel.BackgroundTransparency = 1
     titleLabel.Text = title
@@ -85,7 +96,6 @@ function NotificationSystem:Create(title, message, duration, type)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = notif
     
-    -- Mensaje
     local messageLabel = Instance.new("TextLabel")
     messageLabel.Size = UDim2.new(1, -50, 0, sizes.IsMobile and 28 or 35)
     messageLabel.Position = UDim2.new(0, sizes.IsMobile and 12 or 15, 0, sizes.IsMobile and 26 or 30)
@@ -99,7 +109,6 @@ function NotificationSystem:Create(title, message, duration, type)
     messageLabel.TextWrapped = true
     messageLabel.Parent = notif
     
-    -- Botón cerrar
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 20, 0, 20)
     closeBtn.Position = UDim2.new(1, -30, 0, 10)
@@ -110,7 +119,6 @@ function NotificationSystem:Create(title, message, duration, type)
     closeBtn.TextSize = 16
     closeBtn.Parent = notif
     
-    -- Barra de progreso
     local progressBar = Instance.new("Frame")
     progressBar.Size = UDim2.new(1, 0, 0, 2)
     progressBar.Position = UDim2.new(0, 0, 1, -2)
@@ -120,20 +128,17 @@ function NotificationSystem:Create(title, message, duration, type)
     
     table.insert(self.Active, notif)
     
-    -- Animación de entrada
     local tweenIn = TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, sizes.NotifWidth, 0, sizes.NotifHeight)
     })
     tweenIn:Play()
     
-    -- Animación de progreso
     local progressTween = TweenService:Create(progressBar, TweenInfo.new(duration, Enum.EasingStyle.Linear), {
         Size = UDim2.new(0, 0, 0, 2)
     })
     progressTween:Play()
     
     local function removeNotif()
-        -- Remover de la lista
         for i, n in ipairs(self.Active) do
             if n == notif then
                 table.remove(self.Active, i)
@@ -141,7 +146,6 @@ function NotificationSystem:Create(title, message, duration, type)
             end
         end
         
-        -- Animar salida
         local tweenOut = TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
             Size = UDim2.new(0, sizes.NotifWidth, 0, 0),
             Position = UDim2.new(1, -(sizes.NotifWidth + (sizes.IsMobile and 10 or 20)), 0, notif.Position.Y.Offset)
@@ -150,7 +154,6 @@ function NotificationSystem:Create(title, message, duration, type)
         tweenOut.Completed:Connect(function()
             notif:Destroy()
             
-            -- Reposicionar notificaciones restantes
             for i, n in ipairs(self.Active) do
                 TweenService:Create(n, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                     Position = UDim2.new(1, -(sizes.NotifWidth + (sizes.IsMobile and 10 or 20)), 0, 20 + ((i-1) * (sizes.NotifHeight + 15)))
@@ -174,14 +177,12 @@ local function CreateKeySystem()
     keyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     keyGui.Parent = PlayerGui
     
-    -- Blur effect
     local blur = Instance.new("BlurEffect")
     blur.Size = 0
     blur.Parent = game:GetService("Lighting")
     
     TweenService:Create(blur, TweenInfo.new(0.5), {Size = 20}):Play()
     
-    -- Overlay
     local overlay = Instance.new("Frame")
     overlay.Size = UDim2.new(1, 0, 1, 0)
     overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -189,7 +190,6 @@ local function CreateKeySystem()
     overlay.BorderSizePixel = 0
     overlay.Parent = keyGui
     
-    -- Key Frame
     local keyFrame = Instance.new("Frame")
     keyFrame.Size = UDim2.new(0, 0, 0, 0)
     keyFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -202,7 +202,6 @@ local function CreateKeySystem()
     keyCorner.CornerRadius = UDim.new(0, 15)
     keyCorner.Parent = keyFrame
     
-    -- Glow effect
     local glow = Instance.new("ImageLabel")
     glow.BackgroundTransparency = 1
     glow.Position = UDim2.new(0, -20, 0, -20)
@@ -215,7 +214,6 @@ local function CreateKeySystem()
     glow.SliceCenter = Rect.new(10, 10, 118, 118)
     glow.Parent = keyFrame
     
-    -- Icono
     local icon = Instance.new("TextLabel")
     icon.Size = UDim2.new(0, 60, 0, 60)
     icon.Position = UDim2.new(0.5, -30, 0, 30)
@@ -224,7 +222,6 @@ local function CreateKeySystem()
     icon.TextSize = 40
     icon.Parent = keyFrame
     
-    -- Título
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -40, 0, 30)
     title.Position = UDim2.new(0, 20, 0, 100)
@@ -245,7 +242,6 @@ local function CreateKeySystem()
     subtitle.TextSize = 12
     subtitle.Parent = keyFrame
     
-    -- Input de key
     local inputFrame = Instance.new("Frame")
     inputFrame.Size = UDim2.new(1, -60, 0, 45)
     inputFrame.Position = UDim2.new(0, 30, 0, 170)
@@ -271,7 +267,6 @@ local function CreateKeySystem()
     keyInput.ClearTextOnFocus = false
     keyInput.Parent = inputFrame
     
-    -- Botón submit
     local submitBtn = Instance.new("TextButton")
     submitBtn.Size = UDim2.new(1, -60, 0, 45)
     submitBtn.Position = UDim2.new(0, 30, 0, 230)
@@ -288,7 +283,6 @@ local function CreateKeySystem()
     submitCorner.CornerRadius = UDim.new(0, 10)
     submitCorner.Parent = submitBtn
     
-    -- Info de key
     local keyInfo = Instance.new("TextLabel")
     keyInfo.Size = UDim2.new(1, -40, 0, 30)
     keyInfo.Position = UDim2.new(0, 20, 0, 290)
@@ -299,7 +293,6 @@ local function CreateKeySystem()
     keyInfo.TextSize = 11
     keyInfo.Parent = keyFrame
     
-    -- Animación de entrada
     TweenService:Create(keyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, sizes.KeyPanelWidth, 0, sizes.KeyPanelHeight)
     }):Play()
@@ -312,7 +305,6 @@ local function CreateKeySystem()
             
             NotificationSystem:Create("✅ Acceso Concedido", "Clave correcta! Iniciando...", 2, "success")
             
-            -- Animar salida
             TweenService:Create(keyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
                 Size = UDim2.new(0, 0, 0, 0)
             }):Play()
@@ -324,12 +316,10 @@ local function CreateKeySystem()
             keyGui:Destroy()
             blur:Destroy()
             
-            -- Crear GUI principal
             CreateMainGUI()
         else
             NotificationSystem:Create("❌ Acceso Denegado", "Clave incorrecta. Intenta de nuevo.", 2, "error")
             
-            -- Shake animation
             local originalPos = keyFrame.Position
             for i = 1, 3 do
                 TweenService:Create(keyFrame, TweenInfo.new(0.05), {Position = originalPos + UDim2.new(0, 10, 0, 0)}):Play()
@@ -350,7 +340,6 @@ local function CreateKeySystem()
         end
     end)
     
-    -- Hover effect
     submitBtn.MouseEnter:Connect(function()
         TweenService:Create(submitBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(120, 170, 255)}):Play()
     end)
@@ -361,39 +350,166 @@ local function CreateKeySystem()
 end
 
 -- ==================== SISTEMA DE RESPONSIVIDAD ====================
-local function GetResponsiveSize()
+function GetResponsiveSize()
     local viewportSize = workspace.CurrentCamera.ViewportSize
     local isSmallScreen = viewportSize.X < 600 or viewportSize.Y < 500
     
     return {
-        -- Tamaños del panel principal
         PanelWidth = isSmallScreen and math.min(viewportSize.X - 40, 350) or 400,
         PanelHeight = isSmallScreen and math.min(viewportSize.Y - 100, 450) or 500,
-        
-        -- Tamaños del botón flotante
         ButtonSize = isSmallScreen and 50 or 60,
         ButtonTextSize = isSmallScreen and 24 or 28,
-        
-        -- Tamaños de texto
         TitleSize = isSmallScreen and 14 or 16,
         ToggleTextSize = isSmallScreen and 11 or 13,
-        
-        -- Tamaños de toggles
         ToggleHeight = isSmallScreen and 45 or 50,
         ToggleButtonWidth = isSmallScreen and 45 or 50,
         ToggleButtonHeight = isSmallScreen and 24 or 28,
-        
-        -- Key System
         KeyPanelWidth = isSmallScreen and math.min(viewportSize.X - 60, 320) or 400,
         KeyPanelHeight = isSmallScreen and 300 or 340,
-        
-        -- Notificaciones
         NotifWidth = isSmallScreen and math.min(viewportSize.X - 40, 280) or 300,
         NotifHeight = isSmallScreen and 65 or 75,
-        
         IsMobile = isSmallScreen
     }
 end
+
+-- ==================== SISTEMA NO ANIM ====================
+local function StopAllAnimations()
+    if not Character or not Humanoid then return end
+    
+    pcall(function()
+        -- Detener todas las animaciones del Animator
+        local animator = Humanoid:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                track:Stop(0)
+                track:Destroy()
+            end
+        end
+        
+        -- Detener animaciones del Humanoid directamente
+        for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+            track:Stop(0)
+            track:Destroy()
+        end
+    end)
+end
+
+local function EnableNoAnim()
+    if NoAnimEnabled then return end
+    NoAnimEnabled = true
+    
+    -- Guardar animaciones originales
+    pcall(function()
+        local animator = Humanoid:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+                table.insert(OriginalAnimations, track)
+            end
+        end
+    end)
+    
+    -- Detener todas las animaciones inmediatamente
+    StopAllAnimations()
+    
+    -- Conexión para detener animaciones continuamente
+    NoAnimConnection = RunService.Heartbeat:Connect(function()
+        if NoAnimEnabled then
+            StopAllAnimations()
+        end
+    end)
+    
+    NotificationSystem:Create("🚫 NoAnim Activado", "Todas las animaciones eliminadas", 2, "success")
+end
+
+local function DisableNoAnim()
+    if not NoAnimEnabled then return end
+    NoAnimEnabled = false
+    
+    -- Desconectar el loop
+    if NoAnimConnection then
+        NoAnimConnection:Disconnect()
+        NoAnimConnection = nil
+    end
+    
+    -- Limpiar la tabla de animaciones originales
+    OriginalAnimations = {}
+    
+    NotificationSystem:Create("✅ NoAnim Desactivado", "Animaciones restauradas", 2, "info")
+end
+
+-- ==================== SISTEMA NO ANIM TOOLS ====================
+local function EnableNoAnimTools()
+    if NoAnimToolsEnabled then return end
+    NoAnimToolsEnabled = true
+    
+    -- Función para eliminar todas las tools
+    local function RemoveAllTools()
+        if not Character then return end
+        
+        pcall(function()
+            -- Eliminar tools del character
+            for _, tool in pairs(Character:GetChildren()) do
+                if tool:IsA("Tool") then
+                    tool.Parent = nil
+                end
+            end
+            
+            -- Eliminar tools del backpack
+            if LocalPlayer:FindFirstChild("Backpack") then
+                for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        tool.Parent = nil
+                    end
+                end
+            end
+        end)
+    end
+    
+    -- Eliminar tools inmediatamente
+    RemoveAllTools()
+    
+    -- Conexión para mantener sin tools
+    NoAnimToolsConnection = RunService.Heartbeat:Connect(function()
+        if NoAnimToolsEnabled then
+            RemoveAllTools()
+        end
+    end)
+    
+    NotificationSystem:Create("🔧 NoAnimTools Activado", "Tools eliminadas de tu inventario", 2, "success")
+end
+
+local function DisableNoAnimTools()
+    if not NoAnimToolsEnabled then return end
+    NoAnimToolsEnabled = false
+    
+    -- Desconectar el loop
+    if NoAnimToolsConnection then
+        NoAnimToolsConnection:Disconnect()
+        NoAnimToolsConnection = nil
+    end
+    
+    NotificationSystem:Create("✅ NoAnimTools Desactivado", "Tools restauradas", 2, "info")
+end
+
+-- ==================== CHARACTER RESET HANDLER ====================
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = newChar:WaitForChild("Humanoid")
+    
+    -- Re-aplicar NoAnim si estaba activado
+    if NoAnimEnabled then
+        wait(0.5) -- Esperar a que cargue el personaje
+        NoAnimEnabled = false -- Resetear para poder re-activar
+        EnableNoAnim()
+    end
+    
+    -- Re-aplicar NoAnimTools si estaba activado
+    if NoAnimToolsEnabled then
+        wait(0.5)
+        NoAnimToolsEnabled = false
+        EnableNoAnimTools()
+    end
+end)
 
 -- ==================== GUI PRINCIPAL ====================
 function CreateMainGUI()
@@ -407,7 +523,6 @@ function CreateMainGUI()
     mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     mainGui.Parent = PlayerGui
     
-    -- Botón flotante (responsivo)
     local floatBtn = Instance.new("TextButton")
     floatBtn.Size = UDim2.new(0, sizes.ButtonSize, 0, sizes.ButtonSize)
     floatBtn.Position = UDim2.new(0, sizes.IsMobile and 10 or 20, 0.5, -sizes.ButtonSize/2)
@@ -426,7 +541,6 @@ function CreateMainGUI()
     floatCorner.CornerRadius = UDim.new(1, 0)
     floatCorner.Parent = floatBtn
     
-    -- Glow del botón
     local btnGlow = Instance.new("ImageLabel")
     btnGlow.BackgroundTransparency = 1
     btnGlow.Position = UDim2.new(0, -10, 0, -10)
@@ -439,7 +553,6 @@ function CreateMainGUI()
     btnGlow.SliceCenter = Rect.new(10, 10, 118, 118)
     btnGlow.Parent = floatBtn
     
-    -- Panel principal (oculto inicialmente, responsivo)
     local mainPanel = Instance.new("Frame")
     mainPanel.Size = UDim2.new(0, 0, 0, 0)
     mainPanel.Position = UDim2.new(0.5, -sizes.PanelWidth/2, 0.5, -sizes.PanelHeight/2)
@@ -453,7 +566,6 @@ function CreateMainGUI()
     panelCorner.CornerRadius = UDim.new(0, 15)
     panelCorner.Parent = mainPanel
     
-    -- Panel glow
     local panelGlow = Instance.new("ImageLabel")
     panelGlow.BackgroundTransparency = 1
     panelGlow.Position = UDim2.new(0, -20, 0, -20)
@@ -466,7 +578,6 @@ function CreateMainGUI()
     panelGlow.SliceCenter = Rect.new(10, 10, 118, 118)
     panelGlow.Parent = mainPanel
     
-    -- Header minimalista (responsivo)
     local header = Instance.new("Frame")
     header.Size = UDim2.new(1, 0, 0, sizes.IsMobile and 45 or 50)
     header.BackgroundTransparency = 1
@@ -499,7 +610,6 @@ function CreateMainGUI()
     closeBtnCorner.CornerRadius = UDim.new(0, 8)
     closeBtnCorner.Parent = closeBtn
     
-    -- Content (responsivo)
     local content = Instance.new("ScrollingFrame")
     content.Size = UDim2.new(1, sizes.IsMobile and -20 or -30, 1, sizes.IsMobile and -60 or -70)
     content.Position = UDim2.new(0, sizes.IsMobile and 10 or 15, 0, sizes.IsMobile and 50 or 55)
@@ -513,7 +623,7 @@ function CreateMainGUI()
     contentList.Padding = UDim.new(0, 10)
     contentList.Parent = content
     
-    -- Toggle ejemplo (responsivo)
+    -- Función para crear toggles
     local function createToggle(name, emoji, callback)
         local toggleFrame = Instance.new("Frame")
         toggleFrame.Size = UDim2.new(1, 0, 0, sizes.ToggleHeight)
@@ -590,7 +700,47 @@ function CreateMainGUI()
         return toggleFrame
     end
     
-    -- Crear toggles de ejemplo
+    -- Sección: Animaciones
+    local sectionAnim = Instance.new("TextLabel")
+    sectionAnim.Size = UDim2.new(1, 0, 0, 30)
+    sectionAnim.BackgroundTransparency = 1
+    sectionAnim.Text = "⚙️ CONFIGURACIÓN ANIMACIONES"
+    sectionAnim.TextColor3 = Color3.fromRGB(100, 150, 255)
+    sectionAnim.Font = Enum.Font.GothamBold
+    sectionAnim.TextSize = sizes.IsMobile and 11 or 12
+    sectionAnim.TextXAlignment = Enum.TextXAlignment.Left
+    sectionAnim.Parent = content
+    
+    -- Toggle NoAnim
+    createToggle("No Animations", "🚫", function(enabled)
+        if enabled then
+            EnableNoAnim()
+        else
+            DisableNoAnim()
+        end
+    end)
+    
+    -- Toggle NoAnimTools
+    createToggle("No Anim Tools", "🔧", function(enabled)
+        if enabled then
+            EnableNoAnimTools()
+        else
+            DisableNoAnimTools()
+        end
+    end)
+    
+    -- Sección: Funciones
+    local sectionFeatures = Instance.new("TextLabel")
+    sectionFeatures.Size = UDim2.new(1, 0, 0, 30)
+    sectionFeatures.BackgroundTransparency = 1
+    sectionFeatures.Text = "🎯 FUNCIONES"
+    sectionFeatures.TextColor3 = Color3.fromRGB(100, 150, 255)
+    sectionFeatures.Font = Enum.Font.GothamBold
+    sectionFeatures.TextSize = sizes.IsMobile and 11 or 12
+    sectionFeatures.TextXAlignment = Enum.TextXAlignment.Left
+    sectionFeatures.Parent = content
+    
+    -- Crear toggles de funciones
     createToggle("Auto Paintball", "🎯", function(enabled)
         print("Auto Paintball:", enabled)
     end)
@@ -616,7 +766,7 @@ function CreateMainGUI()
         if isOpen then
             mainPanel.Visible = true
             TweenService:Create(mainPanel, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 400, 0, 500)
+                Size = UDim2.new(0, sizes.PanelWidth, 0, sizes.PanelHeight)
             }):Play()
             TweenService:Create(floatBtn, TweenInfo.new(0.3), {Rotation = 90}):Play()
         else
@@ -624,11 +774,22 @@ function CreateMainGUI()
                 Size = UDim2.new(0, 0, 0, 0)
             }):Play()
             TweenService:Create(floatBtn, TweenInfo.new(0.3), {Rotation = 0}):Play()
+            wait(0.3)
+            mainPanel.Visible = false
+        end
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        isOpen = false
+        TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0)
+        }):Play()
+        TweenService:Create(floatBtn, TweenInfo.new(0.3), {Rotation = 0}):Play()
         wait(0.3)
         mainPanel.Visible = false
     end)
     
-    -- Efectos hover en botones (ajustados para responsividad)
+    -- Efectos hover
     floatBtn.MouseEnter:Connect(function()
         local hoverSize = sizes.ButtonSize + 5
         TweenService:Create(floatBtn, TweenInfo.new(0.2), {
@@ -686,15 +847,6 @@ CreateKeySystem()
 print("🎨 Paintball Minimal GUI Loaded!")
 print("🔐 Key System Activated")
 print("🔔 Notification System Ready")
-print("✨ Drag & Drop Button Enabled")}):Play()
-            wait(0.3)
-            mainPanel.Visible = false
-        end
-    end)
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        isOpen = false
-        TweenService:Create(mainPanel, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0)
-        }):Play()
-        TweenService:Create(floatBtn, TweenInfo.new(0.3), {Rotation = 0
+print("✨ Drag & Drop Button Enabled")
+print("🚫 NoAnim System Ready")
+print("🔧 NoAnimTools System Ready")
