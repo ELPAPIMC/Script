@@ -1,4 +1,5 @@
--- Paintball Minimal GUI con Key System y Notificaciones
+-- ==================== LOOPS DE FUNCIONALIDADES ====================
+RunService.Heartbeat:Connect(function()-- Paintball Minimal GUI con Key System y Notificaciones
 -- Sistema completo con Auto Paintball, ESP y todas las funciones
 
 local Players = game:GetService("Players")
@@ -346,8 +347,33 @@ local function FireAtTarget(position)
     end)
 end
 
--- ==================== LOOPS DE FUNCIONALIDADES ====================
-RunService.Heartbeat:Connect(function()
+-- ==================== AUTO EQUIP PAINTBALL GUN ====================
+local function AutoEquipPaintballGun()
+    spawn(function()
+        while wait(0.5) do
+            if PaintballConfig.Enabled then
+                pcall(function()
+                    local character = LocalPlayer.Character
+                    local backpack = LocalPlayer.Backpack
+                    
+                    if character and backpack then
+                        local gun = character:FindFirstChild("Paintball Gun")
+                        
+                        if not gun then
+                            gun = backpack:FindFirstChild("Paintball Gun")
+                            if gun and gun:IsA("Tool") then
+                                character.Humanoid:EquipTool(gun)
+                            end
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end
+
+-- Iniciar auto equip
+AutoEquipPaintballGun()
     -- Auto Paintball
     if PaintballConfig.Enabled then
         if PaintballConfig.ShootAllMode then
@@ -613,7 +639,7 @@ end
 
 -- ==================== GUI PRINCIPAL ====================
 function CreateMainGUI()
-    NotificationSystem:Create("🎨 Bienvenido", "Paintball GUI cargada correctamente", 3, "success")
+    NotificationSystem:Create("❓ Bienvenido", "Question Hub cargada correctamente", 3, "success")
     
     local sizes = GetResponsiveSize()
     
@@ -687,7 +713,7 @@ function CreateMainGUI()
     titleLabel.Size = UDim2.new(1, -100, 1, 0)
     titleLabel.Position = UDim2.new(0, sizes.IsMobile and 15 or 20, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "🎨 PAINTBALL"
+    titleLabel.Text = "❓ QUESTION HUB"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextSize = sizes.TitleSize
@@ -727,7 +753,7 @@ function CreateMainGUI()
         content.CanvasSize = UDim2.new(0, 0, 0, contentList.AbsoluteContentSize.Y + 10)
     end)
     
-    local function createToggle(name, emoji, callback)
+    local function createToggle(name, emoji, config, callback)
         local toggleFrame = Instance.new("Frame")
         toggleFrame.Size = UDim2.new(1, 0, 0, sizes.ToggleHeight)
         toggleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
@@ -739,7 +765,7 @@ function CreateMainGUI()
         toggleCorner.Parent = toggleFrame
         
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -80, 1, 0)
+        label.Size = UDim2.new(1, -120, 1, 0)
         label.Position = UDim2.new(0, sizes.IsMobile and 12 or 15, 0, 0)
         label.BackgroundTransparency = 1
         label.Text = emoji .. " " .. name
@@ -748,6 +774,24 @@ function CreateMainGUI()
         label.TextSize = sizes.ToggleTextSize
         label.TextXAlignment = Enum.TextXAlignment.Left
         label.Parent = toggleFrame
+        
+        -- Botón de configuración (tuerca)
+        local settingsBtn
+        if config and config.hasSettings then
+            settingsBtn = Instance.new("TextButton")
+            settingsBtn.Size = UDim2.new(0, sizes.IsMobile and 28 or 32, 0, sizes.IsMobile and 28 or 32)
+            settingsBtn.Position = UDim2.new(1, -(sizes.ToggleButtonWidth + (sizes.IsMobile and 40 or 45)), 0.5, -(sizes.IsMobile and 14 or 16))
+            settingsBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            settingsBtn.BorderSizePixel = 0
+            settingsBtn.Text = "⚙️"
+            settingsBtn.TextSize = sizes.IsMobile and 14 or 16
+            settingsBtn.AutoButtonColor = false
+            settingsBtn.Parent = toggleFrame
+            
+            local settingsBtnCorner = Instance.new("UICorner")
+            settingsBtnCorner.CornerRadius = UDim.new(0, 8)
+            settingsBtnCorner.Parent = settingsBtn
+        end
         
         local toggle = Instance.new("TextButton")
         toggle.Size = UDim2.new(0, sizes.ToggleButtonWidth, 0, sizes.ToggleButtonHeight)
@@ -776,6 +820,78 @@ function CreateMainGUI()
         
         local isEnabled = false
         
+        -- Panel de configuración
+        if config and config.hasSettings then
+            local settingsPanel = Instance.new("Frame")
+            settingsPanel.Size = UDim2.new(1, 0, 0, 0)
+            settingsPanel.Position = UDim2.new(0, 0, 1, 5)
+            settingsPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            settingsPanel.BorderSizePixel = 0
+            settingsPanel.ClipsDescendants = true
+            settingsPanel.Visible = false
+            settingsPanel.Parent = toggleFrame
+            
+            local settingsPanelCorner = Instance.new("UICorner")
+            settingsPanelCorner.CornerRadius = UDim.new(0, 10)
+            settingsPanelCorner.Parent = settingsPanel
+            
+            local settingsList = Instance.new("UIListLayout")
+            settingsList.Padding = UDim.new(0, 8)
+            settingsList.Parent = settingsPanel
+            
+            local settingsPadding = Instance.new("UIPadding")
+            settingsPadding.PaddingTop = UDim.new(0, 10)
+            settingsPadding.PaddingLeft = UDim.new(0, 10)
+            settingsPadding.PaddingRight = UDim.new(0, 10)
+            settingsPadding.PaddingBottom = UDim.new(0, 10)
+            settingsPadding.Parent = settingsPanel
+            
+            -- Crear opciones de configuración
+            local totalHeight = 20
+            
+            if config.fireRate then
+                totalHeight = totalHeight + 60
+                createSlider(settingsPanel, "⚡ Velocidad", 5, 100, 10, "ms", function(value)
+                    PaintballConfig.FireRate = value / 100
+                end)
+            end
+            
+            if config.maxDistance then
+                totalHeight = totalHeight + 60
+                createSlider(settingsPanel, "📏 Distancia", 100, 1000, 500, "m", function(value)
+                    PaintballConfig.MaxDistance = value
+                end)
+            end
+            
+            if config.shootAll then
+                totalHeight = totalHeight + 45
+                createMiniToggle(settingsPanel, "💥 Disparar a Todos", "⚠️ BETA - Puede causar lag", function(enabled)
+                    PaintballConfig.ShootAllMode = enabled
+                end)
+            end
+            
+            local settingsOpen = false
+            settingsBtn.MouseButton1Click:Connect(function()
+                settingsOpen = not settingsOpen
+                
+                local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+                
+                if settingsOpen then
+                    settingsPanel.Visible = true
+                    toggleFrame.Size = UDim2.new(1, 0, 0, sizes.ToggleHeight)
+                    TweenService:Create(toggleFrame, tweenInfo, {Size = UDim2.new(1, 0, 0, sizes.ToggleHeight + totalHeight)}):Play()
+                    TweenService:Create(settingsPanel, tweenInfo, {Size = UDim2.new(1, 0, 0, totalHeight)}):Play()
+                    TweenService:Create(settingsBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(100, 150, 255)}):Play()
+                else
+                    TweenService:Create(toggleFrame, tweenInfo, {Size = UDim2.new(1, 0, 0, sizes.ToggleHeight)}):Play()
+                    TweenService:Create(settingsPanel, tweenInfo, {Size = UDim2.new(1, 0, 0, 0)}):Play()
+                    TweenService:Create(settingsBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
+                    wait(0.3)
+                    settingsPanel.Visible = false
+                end
+            end)
+        end
+        
         toggle.MouseButton1Click:Connect(function()
             isEnabled = not isEnabled
             
@@ -803,15 +919,193 @@ function CreateMainGUI()
         return toggleFrame
     end
     
-    -- Crear toggles con funcionalidad real
-    createToggle("Auto Paintball", "🎯", function(enabled)
+    -- Función para crear sliders
+    local function createSlider(parent, name, min, max, default, suffix, callback)
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Size = UDim2.new(1, 0, 0, 50)
+        sliderFrame.BackgroundTransparency = 1
+        sliderFrame.Parent = parent
+        
+        local sliderLabel = Instance.new("TextLabel")
+        sliderLabel.Size = UDim2.new(1, -60, 0, 16)
+        sliderLabel.BackgroundTransparency = 1
+        sliderLabel.Text = name
+        sliderLabel.TextColor3 = Color3.fromRGB(100, 150, 255)
+        sliderLabel.Font = Enum.Font.GothamBold
+        sliderLabel.TextSize = sizes.IsMobile and 10 or 11
+        sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+        sliderLabel.Parent = sliderFrame
+        
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Size = UDim2.new(0, 60, 0, 16)
+        valueLabel.Position = UDim2.new(1, -60, 0, 0)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Text = default .. suffix
+        valueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        valueLabel.Font = Enum.Font.Gotham
+        valueLabel.TextSize = sizes.IsMobile and 9 or 10
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Parent = sliderFrame
+        
+        local sliderBG = Instance.new("Frame")
+        sliderBG.Size = UDim2.new(1, 0, 0, 6)
+        sliderBG.Position = UDim2.new(0, 0, 0, 24)
+        sliderBG.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        sliderBG.BorderSizePixel = 0
+        sliderBG.Parent = sliderFrame
+        
+        local sliderBGCorner = Instance.new("UICorner")
+        sliderBGCorner.CornerRadius = UDim.new(1, 0)
+        sliderBGCorner.Parent = sliderBG
+        
+        local sliderFill = Instance.new("Frame")
+        sliderFill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+        sliderFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+        sliderFill.BorderSizePixel = 0
+        sliderFill.Parent = sliderBG
+        
+        local sliderFillCorner = Instance.new("UICorner")
+        sliderFillCorner.CornerRadius = UDim.new(1, 0)
+        sliderFillCorner.Parent = sliderFill
+        
+        local sliderBtn = Instance.new("TextButton")
+        sliderBtn.Size = UDim2.new(0, 16, 0, 16)
+        sliderBtn.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+        sliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        sliderBtn.BorderSizePixel = 0
+        sliderBtn.Text = ""
+        sliderBtn.AutoButtonColor = false
+        sliderBtn.Parent = sliderBG
+        
+        local sliderBtnCorner = Instance.new("UICorner")
+        sliderBtnCorner.CornerRadius = UDim.new(1, 0)
+        sliderBtnCorner.Parent = sliderBtn
+        
+        local dragging = false
+        
+        local function updateSlider(input)
+            local pos = math.clamp((input.Position.X - sliderBG.AbsolutePosition.X) / sliderBG.AbsoluteSize.X, 0, 1)
+            local value = math.floor(min + (max - min) * pos)
+            
+            sliderFill.Size = UDim2.new(pos, 0, 1, 0)
+            sliderBtn.Position = UDim2.new(pos, -8, 0.5, -8)
+            valueLabel.Text = value .. suffix
+            
+            if callback then callback(value) end
+        end
+        
+        sliderBtn.MouseButton1Down:Connect(function() dragging = true end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                updateSlider(input)
+            end
+        end)
+        
+        sliderBG.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                updateSlider(input)
+            end
+        end)
+    end
+    
+    -- Función para crear mini toggles
+    local function createMiniToggle(parent, name, warning, callback)
+        local miniFrame = Instance.new("Frame")
+        miniFrame.Size = UDim2.new(1, 0, 0, 35)
+        miniFrame.BackgroundTransparency = 1
+        miniFrame.Parent = parent
+        
+        local miniLabel = Instance.new("TextLabel")
+        miniLabel.Size = UDim2.new(1, -60, 0, 14)
+        miniLabel.BackgroundTransparency = 1
+        miniLabel.Text = name
+        miniLabel.TextColor3 = Color3.fromRGB(100, 150, 255)
+        miniLabel.Font = Enum.Font.GothamBold
+        miniLabel.TextSize = sizes.IsMobile and 10 or 11
+        miniLabel.TextXAlignment = Enum.TextXAlignment.Left
+        miniLabel.Parent = miniFrame
+        
+        local warningLabel = Instance.new("TextLabel")
+        warningLabel.Size = UDim2.new(1, 0, 0, 12)
+        warningLabel.Position = UDim2.new(0, 0, 0, 16)
+        warningLabel.BackgroundTransparency = 1
+        warningLabel.Text = warning
+        warningLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+        warningLabel.Font = Enum.Font.Gotham
+        warningLabel.TextSize = sizes.IsMobile and 8 or 9
+        warningLabel.TextXAlignment = Enum.TextXAlignment.Left
+        warningLabel.Parent = miniFrame
+        
+        local miniToggle = Instance.new("TextButton")
+        miniToggle.Size = UDim2.new(0, 40, 0, 20)
+        miniToggle.Position = UDim2.new(1, -40, 0, 0)
+        miniToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        miniToggle.BorderSizePixel = 0
+        miniToggle.Text = ""
+        miniToggle.AutoButtonColor = false
+        miniToggle.Parent = miniFrame
+        
+        local miniToggleCorner = Instance.new("UICorner")
+        miniToggleCorner.CornerRadius = UDim.new(1, 0)
+        miniToggleCorner.Parent = miniToggle
+        
+        local miniKnob = Instance.new("Frame")
+        miniKnob.Size = UDim2.new(0, 14, 0, 14)
+        miniKnob.Position = UDim2.new(0, 3, 0.5, -7)
+        miniKnob.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+        miniKnob.BorderSizePixel = 0
+        miniKnob.Parent = miniToggle
+        
+        local miniKnobCorner = Instance.new("UICorner")
+        miniKnobCorner.CornerRadius = UDim.new(1, 0)
+        miniKnobCorner.Parent = miniKnob
+        
+        local isEnabled = false
+        
+        miniToggle.MouseButton1Click:Connect(function()
+            isEnabled = not isEnabled
+            
+            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            
+            if isEnabled then
+                TweenService:Create(miniToggle, tweenInfo, {BackgroundColor3 = Color3.fromRGB(100, 150, 255)}):Play()
+                TweenService:Create(miniKnob, tweenInfo, {
+                    Position = UDim2.new(1, -17, 0.5, -7),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                }):Play()
+            else
+                TweenService:Create(miniToggle, tweenInfo, {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
+                TweenService:Create(miniKnob, tweenInfo, {
+                    Position = UDim2.new(0, 3, 0.5, -7),
+                    BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+                }):Play()
+            end
+            
+            if callback then callback(isEnabled) end
+        end)
+    end
+    
+    -- Crear toggles con funcionalidad real y configuración
+    createToggle("Auto Paintball", "🎯", {
+        hasSettings = true,
+        fireRate = true,
+        maxDistance = true,
+        shootAll = true
+    }, function(enabled)
         PaintballConfig.Enabled = enabled
         if enabled then
             NotificationSystem:Create("🎯 Auto Aimbot", "Disparando al enemigo más cercano", 2, "info")
         end
     end)
     
-    createToggle("ESP Players", "👁️", function(enabled)
+    createToggle("ESP Players", "👁️", nil, function(enabled)
         PaintballConfig.ESPEnabled = enabled
         UpdateAllESP()
         if enabled then
@@ -819,14 +1113,7 @@ function CreateMainGUI()
         end
     end)
     
-    createToggle("Shoot All Mode", "💥", function(enabled)
-        PaintballConfig.ShootAllMode = enabled
-        if enabled then
-            NotificationSystem:Create("💥 Modo Rage", "⚠️ Disparando a todos - Puede causar lag", 3, "warning")
-        end
-    end)
-    
-    createToggle("Speed Boost", "⚡", function(enabled)
+    createToggle("Speed Boost", "⚡", nil, function(enabled)
         PaintballConfig.SpeedEnabled = enabled
         if not enabled then
             local character = LocalPlayer.Character
@@ -839,7 +1126,7 @@ function CreateMainGUI()
         end
     end)
     
-    createToggle("Jump Power", "🦘", function(enabled)
+    createToggle("Jump Power", "🦘", nil, function(enabled)
         PaintballConfig.JumpEnabled = enabled
         if not enabled then
             local character = LocalPlayer.Character
@@ -849,12 +1136,6 @@ function CreateMainGUI()
         else
             PaintballConfig.JumpValue = 100
             NotificationSystem:Create("🦘 Jump Power", "Poder de salto aumentado a 100", 2, "info")
-        end
-    end)
-    
-    createToggle("Infinite Ammo", "🔫", function(enabled)
-        if enabled then
-            NotificationSystem:Create("🔫 Infinite Ammo", "Munición infinita activada", 2, "success")
         end
     end)
     
@@ -937,15 +1218,16 @@ end
 
 -- ==================== INICIALIZACIÓN ====================
 
-NotificationSystem:Create("🎮 Paintball GUI", "Inicializando sistema...", 2, "info")
+NotificationSystem:Create("🎮 Question Hub", "Inicializando sistema...", 2, "info")
 
 wait(1)
 
 CreateKeySystem()
 
-print("🎨 Paintball Complete GUI Loaded!")
+print("❓ Question Hub Loaded!")
 print("🔐 Key System: 'zzz'")
-print("🎯 Auto Paintball: Enabled")
+print("🎯 Auto Paintball: Ready")
+print("🔫 Auto Equip: Active")
 print("👁️ ESP System: Ready")
 print("⚡ Speed Hack: Ready")
 print("🦘 Jump Power: Ready")
