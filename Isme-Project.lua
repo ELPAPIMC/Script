@@ -1,6 +1,5 @@
--- Isme | Project - Script Hub
--- Created by: Isme
--- Version: 1.0
+-- Isme | Project - Script Hub MINIMAL MOBILE
+-- Version: 2.0 - Ultra Responsive
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -8,7 +7,6 @@ local UserInputService = game:GetService("UserInputService")
 -- ============================================
 -- CONFIGURACIÓN DE SCRIPTS
 -- ============================================
--- Aquí puedes agregar más scripts fácilmente
 local Scripts = {
     {
         Name = "Infinite Yield",
@@ -30,25 +28,23 @@ local Scripts = {
         Category = "Fun",
         Code = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Cokka-GUI-V2/main/Cokka-Gui-V2.lua"))()]]
     },
-    -- ⬇️ AGREGA MÁS SCRIPTS AQUÍ ⬇️
-    -- {
-    --     Name = "Nombre del Script",
-    --     Category = "Categoria",
-    --     Code = [[tu código aquí]]
-    -- },
 }
 
 -- ============================================
--- CREAR GUI
+-- DETECCIÓN DE DISPOSITIVO
 -- ============================================
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local screenSize = workspace.CurrentCamera.ViewportSize
 
--- Screen GUI Principal
+-- ============================================
+-- CREAR GUI RESPONSIVA
+-- ============================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "IsmeProjectHub"
+ScreenGui.Name = "IsmeMinimalHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
 
--- Protección
 if syn then
     syn.protect_gui(ScreenGui)
     ScreenGui.Parent = game:GetService("CoreGui")
@@ -56,35 +52,48 @@ else
     ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 end
 
+-- Tamaños dinámicos según dispositivo
+local mainWidth = isMobile and screenSize.X * 0.95 or 600
+local mainHeight = isMobile and screenSize.Y * 0.85 or 500
+local headerHeight = isMobile and 50 or 60
+local buttonSize = isMobile and 35 or 40
+local cardHeight = isMobile and 90 : 100
+
 -- Frame Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -350, 0.5, -250)
-MainFrame.Size = UDim2.new(0, 700, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -mainWidth/2, 0.5, -mainHeight/2)
+MainFrame.Size = UDim2.new(0, mainWidth, 0, mainHeight)
 MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Draggable = not isMobile
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.CornerRadius = UDim.new(0, isMobile and 16 or 12)
 MainCorner.Parent = MainFrame
 
--- Header
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(138, 43, 226)
+MainStroke.Thickness = 2
+MainStroke.Transparency = 0.5
+MainStroke.Parent = MainFrame
+
+-- Header Minimalista
 local Header = Instance.new("Frame")
 Header.Name = "Header"
-Header.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+Header.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 Header.BorderSizePixel = 0
-Header.Size = UDim2.new(1, 0, 0, 60)
+Header.Size = UDim2.new(1, 0, 0, headerHeight)
 Header.Parent = MainFrame
 
 local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 12)
+HeaderCorner.CornerRadius = UDim.new(0, isMobile and 16 or 12)
 HeaderCorner.Parent = Header
 
 local HeaderFix = Instance.new("Frame")
-HeaderFix.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+HeaderFix.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 HeaderFix.BorderSizePixel = 0
 HeaderFix.Position = UDim2.new(0, 0, 1, -12)
 HeaderFix.Size = UDim2.new(1, 0, 0, 12)
@@ -92,102 +101,113 @@ HeaderFix.Parent = Header
 
 -- Título
 local Title = Instance.new("TextLabel")
-Title.Name = "Title"
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 20, 0, 0)
-Title.Size = UDim2.new(0, 300, 1, 0)
+Title.Position = UDim2.new(0, isMobile and 15 or 20, 0, 0)
+Title.Size = UDim2.new(0, mainWidth * 0.6, 1, 0)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "Isme | Project"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 24
+Title.Text = "Isme Hub"
+Title.TextColor3 = Color3.fromRGB(138, 43, 226)
+Title.TextSize = isMobile and 18 or 22
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Header
 
+-- Contador de Scripts
+local Counter = Instance.new("TextLabel")
+Counter.BackgroundTransparency = 1
+Counter.Position = UDim2.new(0, isMobile and 15 or 20, 0, isMobile and 25 or 30)
+Counter.Size = UDim2.new(0, 200, 0, 20)
+Counter.Font = Enum.Font.Gotham
+Counter.Text = #Scripts .. " scripts"
+Counter.TextColor3 = Color3.fromRGB(150, 150, 160)
+Counter.TextSize = isMobile and 11 or 12
+Counter.TextXAlignment = Enum.TextXAlignment.Left
+Counter.Parent = Header
+
 -- Botón Cerrar
 local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
 CloseButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-CloseButton.Position = UDim2.new(1, -50, 0, 15)
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -(buttonSize + 10), 0, (headerHeight - buttonSize) / 2)
+CloseButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Text = "X"
+CloseButton.Text = "×"
 CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 18
+CloseButton.TextSize = isMobile and 24 or 28
 CloseButton.Parent = Header
 
 local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.CornerRadius = UDim.new(1, 0)
 CloseCorner.Parent = CloseButton
 
 CloseButton.MouseButton1Click:Connect(function()
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0)
+    }):Play()
+    wait(0.3)
     ScreenGui:Destroy()
 end)
 
 -- Botón Minimizar
 local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Name = "MinimizeButton"
 MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
-MinimizeButton.Position = UDim2.new(1, -90, 0, 15)
-MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MinimizeButton.Position = UDim2.new(1, -(buttonSize * 2 + 20), 0, (headerHeight - buttonSize) / 2)
+MinimizeButton.Size = UDim2.new(0, buttonSize, 0, buttonSize)
 MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.Text = "-"
+MinimizeButton.Text = "−"
 MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeButton.TextSize = 18
+MinimizeButton.TextSize = isMobile and 18 or 22
 MinimizeButton.Parent = Header
 
 local MinCorner = Instance.new("UICorner")
-MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.CornerRadius = UDim.new(1, 0)
 MinCorner.Parent = MinimizeButton
 
 local isMinimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
-    local targetSize = isMinimized and UDim2.new(0, 700, 0, 60) or UDim2.new(0, 700, 0, 500)
-    TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = targetSize}):Play()
+    local targetSize = isMinimized and UDim2.new(0, mainWidth, 0, headerHeight) or UDim2.new(0, mainWidth, 0, mainHeight)
+    TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = targetSize}):Play()
+    MinimizeButton.Text = isMinimized and "+" or "−"
 end)
 
--- Container de Scripts
+-- Container de Scripts con ScrollingFrame
 local ScriptsContainer = Instance.new("ScrollingFrame")
 ScriptsContainer.Name = "ScriptsContainer"
-ScriptsContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-ScriptsContainer.BorderSizePixel = 0
-ScriptsContainer.Position = UDim2.new(0, 10, 0, 70)
-ScriptsContainer.Size = UDim2.new(1, -20, 1, -80)
+ScriptsContainer.BackgroundTransparency = 1
+ScriptsContainer.Position = UDim2.new(0, 0, 0, headerHeight + (isMobile and 5 or 10))
+ScriptsContainer.Size = UDim2.new(1, 0, 1, -(headerHeight + (isMobile and 10 or 15)))
 ScriptsContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScriptsContainer.ScrollBarThickness = 6
+ScriptsContainer.ScrollBarThickness = isMobile and 4 or 6
 ScriptsContainer.ScrollBarImageColor3 = Color3.fromRGB(138, 43, 226)
+ScriptsContainer.BorderSizePixel = 0
+ScriptsContainer.ScrollingDirection = Enum.ScrollingDirection.Y
 ScriptsContainer.Parent = MainFrame
-
-local ContainerCorner = Instance.new("UICorner")
-ContainerCorner.CornerRadius = UDim.new(0, 8)
-ContainerCorner.Parent = ScriptsContainer
 
 local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.Parent = ScriptsContainer
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Padding = UDim.new(0, isMobile and 8 or 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local UIPadding = Instance.new("UIPadding")
 UIPadding.Parent = ScriptsContainer
-UIPadding.PaddingTop = UDim.new(0, 10)
-UIPadding.PaddingBottom = UDim.new(0, 10)
-UIPadding.PaddingLeft = UDim.new(0, 10)
-UIPadding.PaddingRight = UDim.new(0, 10)
+UIPadding.PaddingTop = UDim.new(0, isMobile and 8 or 10)
+UIPadding.PaddingBottom = UDim.new(0, isMobile and 8 or 10)
+UIPadding.PaddingLeft = UDim.new(0, isMobile and 8 or 10)
+UIPadding.PaddingRight = UDim.new(0, isMobile and 12 or 14)
 
 -- ============================================
 -- FUNCIONES
 -- ============================================
-
 local function CreateNotification(text, color)
     local Notification = Instance.new("Frame")
     Notification.BackgroundColor3 = color or Color3.fromRGB(40, 167, 69)
     Notification.BorderSizePixel = 0
-    Notification.Position = UDim2.new(1, 10, 0, 70)
-    Notification.Size = UDim2.new(0, 300, 0, 60)
+    Notification.Position = UDim2.new(isMobile and 0.5 or 1, isMobile and -150 or 10, 0, isMobile and 20 or 70)
+    Notification.Size = UDim2.new(0, isMobile and 300 or 320, 0, isMobile and 50 or 60)
     Notification.Parent = ScreenGui
     
     local NotifCorner = Instance.new("UICorner")
-    NotifCorner.CornerRadius = UDim.new(0, 8)
+    NotifCorner.CornerRadius = UDim.new(0, 10)
     NotifCorner.Parent = Notification
     
     local NotifText = Instance.new("TextLabel")
@@ -197,16 +217,18 @@ local function CreateNotification(text, color)
     NotifText.Font = Enum.Font.Gotham
     NotifText.Text = text
     NotifText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NotifText.TextSize = 14
+    NotifText.TextSize = isMobile and 12 or 14
     NotifText.TextWrapped = true
     NotifText.Parent = Notification
     
-    TweenService:Create(Notification, TweenInfo.new(0.3), {Position = UDim2.new(1, -310, 0, 70)}):Play()
+    local targetPos = isMobile and UDim2.new(0.5, -150, 0, 20) or UDim2.new(1, -330, 0, 70)
+    TweenService:Create(Notification, TweenInfo.new(0.3), {Position = targetPos}):Play()
     
-    wait(3)
+    task.wait(2.5)
     
-    TweenService:Create(Notification, TweenInfo.new(0.3), {Position = UDim2.new(1, 10, 0, 70)}):Play()
-    wait(0.3)
+    local exitPos = isMobile and UDim2.new(0.5, -150, 0, -70) or UDim2.new(1, 10, 0, 70)
+    TweenService:Create(Notification, TweenInfo.new(0.3), {Position = exitPos}):Play()
+    task.wait(0.3)
     Notification:Destroy()
 end
 
@@ -216,74 +238,100 @@ local function ExecuteScript(code)
     end)
     
     if success then
-        CreateNotification("✅ Script ejecutado correctamente", Color3.fromRGB(40, 167, 69))
+        CreateNotification("✓ Ejecutado", Color3.fromRGB(40, 167, 69))
     else
-        CreateNotification("❌ Error al ejecutar: " .. tostring(err), Color3.fromRGB(220, 53, 69))
+        CreateNotification("✗ Error: " .. tostring(err):sub(1, 40), Color3.fromRGB(220, 53, 69))
     end
 end
 
 local function CreateScriptCard(scriptData)
+    local cardWidth = mainWidth - (isMobile and 20 or 24)
+    
     local Card = Instance.new("Frame")
     Card.Name = scriptData.Name
-    Card.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    Card.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
     Card.BorderSizePixel = 0
-    Card.Size = UDim2.new(1, -12, 0, 80)
+    Card.Size = UDim2.new(0, cardWidth, 0, cardHeight)
     Card.Parent = ScriptsContainer
     
     local CardCorner = Instance.new("UICorner")
-    CardCorner.CornerRadius = UDim.new(0, 8)
+    CardCorner.CornerRadius = UDim.new(0, 12)
     CardCorner.Parent = Card
+    
+    local CardStroke = Instance.new("UIStroke")
+    CardStroke.Color = Color3.fromRGB(40, 40, 50)
+    CardStroke.Thickness = 1
+    CardStroke.Transparency = 0.7
+    CardStroke.Parent = Card
+    
+    -- Contenedor de Información
+    local InfoContainer = Instance.new("Frame")
+    InfoContainer.BackgroundTransparency = 1
+    InfoContainer.Position = UDim2.new(0, 12, 0, 10)
+    InfoContainer.Size = UDim2.new(1, -24, 0, 40)
+    InfoContainer.Parent = Card
     
     -- Nombre del Script
     local ScriptName = Instance.new("TextLabel")
-    ScriptName.Name = "ScriptName"
     ScriptName.BackgroundTransparency = 1
-    ScriptName.Position = UDim2.new(0, 15, 0, 10)
-    ScriptName.Size = UDim2.new(0, 300, 0, 25)
+    ScriptName.Size = UDim2.new(1, 0, 0, isMobile and 18 or 22)
     ScriptName.Font = Enum.Font.GothamBold
     ScriptName.Text = scriptData.Name
     ScriptName.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ScriptName.TextSize = 16
+    ScriptName.TextSize = isMobile and 14 or 16
     ScriptName.TextXAlignment = Enum.TextXAlignment.Left
-    ScriptName.Parent = Card
+    ScriptName.TextTruncate = Enum.TextTruncate.AtEnd
+    ScriptName.Parent = InfoContainer
     
     -- Categoría
     local Category = Instance.new("TextLabel")
-    Category.Name = "Category"
     Category.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
-    Category.Position = UDim2.new(0, 15, 0, 40)
-    Category.Size = UDim2.new(0, 80, 0, 25)
+    Category.Position = UDim2.new(0, 0, 0, isMobile and 22 or 26)
+    Category.Size = UDim2.new(0, isMobile and 65 or 75, 0, isMobile and 18 or 20)
     Category.Font = Enum.Font.Gotham
     Category.Text = scriptData.Category
     Category.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Category.TextSize = 12
-    Category.Parent = Card
+    Category.TextSize = isMobile and 10 or 11
+    Category.Parent = InfoContainer
     
     local CatCorner = Instance.new("UICorner")
     CatCorner.CornerRadius = UDim.new(0, 6)
     CatCorner.Parent = Category
     
+    -- Contenedor de Botones
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.BackgroundTransparency = 1
+    ButtonContainer.Position = UDim2.new(0, 12, 1, -(isMobile and 38 or 40))
+    ButtonContainer.Size = UDim2.new(1, -24, 0, isMobile and 30 or 32)
+    ButtonContainer.Parent = Card
+    
+    local ButtonLayout = Instance.new("UIListLayout")
+    ButtonLayout.Parent = ButtonContainer
+    ButtonLayout.FillDirection = Enum.FillDirection.Horizontal
+    ButtonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
+    ButtonLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ButtonLayout.Padding = UDim.new(0, 8)
+    
     -- Botón Ejecutar
     local ExecuteButton = Instance.new("TextButton")
     ExecuteButton.Name = "ExecuteButton"
     ExecuteButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-    ExecuteButton.Position = UDim2.new(1, -110, 0, 25)
-    ExecuteButton.Size = UDim2.new(0, 95, 0, 30)
+    ExecuteButton.Size = UDim2.new(0, isMobile and 85 or 95, 1, 0)
     ExecuteButton.Font = Enum.Font.GothamBold
-    ExecuteButton.Text = "▶ Ejecutar"
+    ExecuteButton.Text = isMobile and "▶ Run" or "▶ Ejecutar"
     ExecuteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ExecuteButton.TextSize = 14
-    ExecuteButton.Parent = Card
+    ExecuteButton.TextSize = isMobile and 12 or 13
+    ExecuteButton.LayoutOrder = 2
+    ExecuteButton.Parent = ButtonContainer
     
     local ExecCorner = Instance.new("UICorner")
-    ExecCorner.CornerRadius = UDim.new(0, 6)
+    ExecCorner.CornerRadius = UDim.new(0, 8)
     ExecCorner.Parent = ExecuteButton
     
     ExecuteButton.MouseButton1Click:Connect(function()
         ExecuteScript(scriptData.Code)
     end)
     
-    -- Hover effect
     ExecuteButton.MouseEnter:Connect(function()
         TweenService:Create(ExecuteButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 200, 80)}):Play()
     end)
@@ -296,21 +344,21 @@ local function CreateScriptCard(scriptData)
     local CopyButton = Instance.new("TextButton")
     CopyButton.Name = "CopyButton"
     CopyButton.BackgroundColor3 = Color3.fromRGB(108, 117, 125)
-    CopyButton.Position = UDim2.new(1, -210, 0, 25)
-    CopyButton.Size = UDim2.new(0, 95, 0, 30)
+    CopyButton.Size = UDim2.new(0, isMobile and 70 or 80, 1, 0)
     CopyButton.Font = Enum.Font.GothamBold
-    CopyButton.Text = "📋 Copiar"
+    CopyButton.Text = isMobile and "📋" or "📋 Copy"
     CopyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CopyButton.TextSize = 14
-    CopyButton.Parent = Card
+    CopyButton.TextSize = isMobile and 16 or 13
+    CopyButton.LayoutOrder = 1
+    CopyButton.Parent = ButtonContainer
     
     local CopyCorner = Instance.new("UICorner")
-    CopyCorner.CornerRadius = UDim.new(0, 6)
+    CopyCorner.CornerRadius = UDim.new(0, 8)
     CopyCorner.Parent = CopyButton
     
     CopyButton.MouseButton1Click:Connect(function()
         setclipboard(scriptData.Code)
-        CreateNotification("📋 Código copiado al portapapeles", Color3.fromRGB(23, 162, 184))
+        CreateNotification("📋 Copiado", Color3.fromRGB(23, 162, 184))
     end)
     
     CopyButton.MouseEnter:Connect(function()
@@ -323,29 +371,31 @@ local function CreateScriptCard(scriptData)
 end
 
 -- ============================================
--- CARGAR TODOS LOS SCRIPTS
+-- CARGAR SCRIPTS
 -- ============================================
-
 for _, scriptData in ipairs(Scripts) do
     CreateScriptCard(scriptData)
 end
 
--- Ajustar tamaño del canvas
-ScriptsContainer.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 20)
-UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    ScriptsContainer.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 20)
-end)
+-- Actualizar tamaño del canvas
+local function UpdateCanvasSize()
+    ScriptsContainer.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + (isMobile and 16 or 20))
+end
+
+UpdateCanvasSize()
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvasSize)
 
 -- ============================================
 -- ANIMACIÓN DE ENTRADA
 -- ============================================
-
 MainFrame.Size = UDim2.new(0, 0, 0, 0)
-TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.new(0, 700, 0, 500)}):Play()
+TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+    Size = UDim2.new(0, mainWidth, 0, mainHeight)
+}):Play()
 
--- Notificación de bienvenida
-wait(0.3)
-CreateNotification("🎮 Isme Project cargado correctamente", Color3.fromRGB(138, 43, 226))
+task.wait(0.3)
+CreateNotification("🎮 Hub cargado", Color3.fromRGB(138, 43, 226))
 
-print("✅ Isme | Project - Script Hub cargado correctamente")
-print("📝 Total de scripts: " .. #Scripts)
+print("✅ Isme Hub Minimal Mobile v2.0")
+print("📱 Modo: " .. (isMobile and "Mobile" or "Desktop"))
+print("📝 Scripts: " .. #Scripts)
