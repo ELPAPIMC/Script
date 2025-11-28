@@ -65,7 +65,7 @@ keyInput.Parent = keyFrame
 Instance.new("UICorner", keyInput).CornerRadius = UDim.new(0, 6)
 
 local submitButton = Instance.new("TextButton")
-submitButton.Size = UDim2.new(0, 140, 0, 32)
+submitButton.Size = UDim2.new(0, 132, 0, 32)
 submitButton.Position = UDim2.new(0, 20, 0, 105)
 submitButton.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
 submitButton.Text = "Verificar"
@@ -77,8 +77,8 @@ submitButton.Parent = keyFrame
 Instance.new("UICorner", submitButton).CornerRadius = UDim.new(0, 6)
 
 local getKeyButton = Instance.new("TextButton")
-getKeyButton.Size = UDim2.new(0, 100, 0, 32)
-getKeyButton.Position = UDim2.new(1, -120, 0, 105)
+getKeyButton.Size = UDim2.new(0, 93, 0, 32)
+getKeyButton.Position = UDim2.new(1, -113, 0, 105)
 getKeyButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
 getKeyButton.Text = "Get Key"
 getKeyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
