@@ -1,68 +1,48 @@
--- CONFIGURACIÓN
-local IMAGE_ID = "rbxassetid://109211928331150"
-local SOUND_ID = "rbxassetid://6754147732"
-local DURATION = 1.5
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
 
--- SERVICIOS
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera
+-- https://scriptblox.com/script/Universal-Script-N00BKIDS-jumpscare-42046
 
--- GUI
-local gui = Instance.new("ScreenGui")
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
 
-local image = Instance.new("ImageLabel")
-image.Size = UDim2.new(1, 0, 1, 0)
-image.Position = UDim2.new(0, 0, 0, 0)
-image.BackgroundTransparency = 1
-image.Image = IMAGE_ID
-image.ImageTransparency = 1
-image.Parent = gui
+local realmscare = Instance.new("ScreenGui")
+local ImageLabel = Instance.new("ImageLabel")
+local framefrrfr = Instance.new("Frame")
+local PercentageBar = Instance.new("ImageLabel")
+local Label = Instance.new("TextLabel")
+local Frame = Instance.new("ImageLabel")
+local TextLabel = Instance.new("TextLabel")
+local TextLabel_2 = Instance.new("TextLabel")
+local TextLabel_3 = Instance.new("TextLabel")
 
--- SONIDO
-local sound = Instance.new("Sound")
-sound.SoundId = SOUND_ID
-sound.Volume = 10
-sound.PlaybackSpeed = 1
-sound.Parent = camera
+--Properties:
 
--- JUMPSCARE
-local function jumpscare()
-	-- Imagen instantánea
-	TweenService:Create(
-		image,
-		TweenInfo.new(0.06),
-		{ImageTransparency = 0}
-	):Play()
+realmscare.Name = "realm-scare"
+realmscare.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+realmscare.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+realmscare.ResetOnSpawn = false
 
-	-- Sonido
-	sound:Play()
+ImageLabel.Parent = realmscare
+ImageLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ImageLabel.BorderColor3 = Color3.fromRGB(27, 42, 53)
+ImageLabel.Position = UDim2.new(0, 0, -0.0335968398, 0)
+ImageLabel.Size = UDim2.new(1, 0, 1.03359687, 0)
+ImageLabel.Image = "http://www.roblox.com/asset/?id=10545695322"
 
-	-- Shake cámara
-	local original = camera.CFrame
-	for i = 1, 14 do
-		camera.CFrame = original * CFrame.new(
-			math.random(-4,4)/20,
-			math.random(-4,4)/20,
-			0
-		)
-		task.wait(0.03)
-	end
-	camera.CFrame = original
 
-	task.wait(DURATION)
+-- Scripts:
 
-	-- Desaparece
-	TweenService:Create(
-		image,
-		TweenInfo.new(0.25),
-		{ImageTransparency = 1}
-	):Play()
+local function RGEBY_fake_script() -- ImageLabel.killoollsa 
+	local script = Instance.new('LocalScript', ImageLabel)
+
+	local tubers93		= Instance.new("Sound")
+	tubers93.Parent		= game:GetService("Workspace")
+	tubers93.SoundId		= "http://www.roblox.com/asset/?id=6863021504"
+	tubers93.Playing		= true
+	tubers93.Looped		= false
+	tubers93.Volume		= 10
+	tubers93.Pitch		= 0.7
+	wait(6)
+	script.Parent.Parent:Destroy()
 end
-
--- EJECUTAR
-jumpscare()
+coroutine.wrap(RGEBY_fake_script)()
