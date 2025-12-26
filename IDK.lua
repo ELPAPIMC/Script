@@ -133,5 +133,5 @@ while true do
 	local randomIndex = math.random(1, #notificationTexts)
 	showNotification(notificationTexts[randomIndex])
 	
-	task.wait(1)
+	task.wait(0.3)
 end
