@@ -1,4 +1,4 @@
--- ZL Finder GUI - ZL Auto Joiner (Multi Tabs)
+-- ZL Finder GUI - ZL Auto Joiner (ScrollFrame)
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -34,93 +34,64 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
 Title.Parent = MainFrame
 
--- Barra de Tabs
-local TabsBar = Instance.new("Frame")
-TabsBar.Size = UDim2.new(1, 0, 0, 35)
-TabsBar.Position = UDim2.new(0, 0, 0, 40)
-TabsBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TabsBar.BorderSizePixel = 0
-TabsBar.Parent = MainFrame
+-- ScrollFrame
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -20, 1, -60)
+ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
+ScrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollFrame.ScrollBarImageTransparency = 0
+ScrollFrame.Parent = MainFrame
 
--- Contenedor de contenido
-local ContentFrame = Instance.new("Frame")
-ContentFrame.Size = UDim2.new(1, -20, 1, -95)
-ContentFrame.Position = UDim2.new(0, 10, 0, 85)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ContentFrame.BorderSizePixel = 0
-ContentFrame.Parent = MainFrame
-
--- Layout Tabs
-local UIList = Instance.new("UIListLayout")
-UIList.FillDirection = Enum.FillDirection.Horizontal
-UIList.Padding = UDim.new(0, 5)
-UIList.Parent = TabsBar
-
-local pages = {}
+-- Layout
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Parent = ScrollFrame
 
 -- Función Kick
 local function kickPlayer(nombre)
 	player:Kick(
-		"JAJAJA 🤡\n" ..
-		"Intentaste unirte a: " .. nombre .. "\n" ..
-		"ZL Auto Joiner te troleó."
+		"TONTO COMO PIENSAS QUE ZL ES TAN PENDEJO\n\n" ..
+		"Intentaste unirte a: " .. nombre
 	)
 end
 
--- Crear Tabs
-for i, texto in ipairs(textos) do
-	-- Botón Tab
-	local TabButton = Instance.new("TextButton")
-	TabButton.Size = UDim2.new(0, 100, 1, 0)
-	TabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	TabButton.Text = texto
-	TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-	TabButton.Font = Enum.Font.GothamBold
-	TabButton.TextSize = 14
-	TabButton.Parent = TabsBar
+-- Crear items
+for _, texto in ipairs(textos) do
+	local ItemFrame = Instance.new("Frame")
+	ItemFrame.Size = UDim2.new(1, -10, 0, 60)
+	ItemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	ItemFrame.BorderSizePixel = 0
+	ItemFrame.Parent = ScrollFrame
 
-	-- Página
-	local Page = Instance.new("Frame")
-	Page.Size = UDim2.new(1, 0, 1, 0)
-	Page.BackgroundTransparency = 1
-	Page.Visible = false
-	Page.Parent = ContentFrame
-	pages[i] = Page
-
-	-- Texto
 	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(0.6, 0, 0, 50)
-	Label.Position = UDim2.new(0.05, 0, 0.3, 0)
-	Label.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	Label.Size = UDim2.new(0.6, 0, 1, 0)
+	Label.Position = UDim2.new(0, 10, 0, 0)
+	Label.BackgroundTransparency = 1
 	Label.Text = texto
 	Label.TextColor3 = Color3.fromRGB(255, 255, 255)
 	Label.Font = Enum.Font.GothamBold
 	Label.TextSize = 16
-	Label.Parent = Page
+	Label.TextXAlignment = Enum.TextXAlignment.Left
+	Label.Parent = ItemFrame
 
-	-- Botón Join
 	local JoinButton = Instance.new("TextButton")
-	JoinButton.Size = UDim2.new(0.25, 0, 0, 50)
-	JoinButton.Position = UDim2.new(0.7, 0, 0.3, 0)
+	JoinButton.Size = UDim2.new(0, 100, 0, 35)
+	JoinButton.Position = UDim2.new(1, -110, 0.5, -17)
 	JoinButton.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
 	JoinButton.Text = "Join"
 	JoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 	JoinButton.Font = Enum.Font.GothamBold
-	JoinButton.TextSize = 15
-	JoinButton.Parent = Page
+	JoinButton.TextSize = 14
+	JoinButton.Parent = ItemFrame
 
 	JoinButton.MouseButton1Click:Connect(function()
 		kickPlayer(texto)
 	end)
-
-	-- Cambiar tab
-	TabButton.MouseButton1Click:Connect(function()
-		for _, p in pairs(pages) do
-			p.Visible = false
-		end
-		Page.Visible = true
-	end)
 end
 
--- Mostrar primer tab por defecto
-pages[1].Visible = true
+-- Ajustar CanvasSize automáticamente
+UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
+end)
