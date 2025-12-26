@@ -1,97 +1,84 @@
--- ZL Finder GUI - ZL Auto Joiner (ScrollFrame)
+-- ZL Finder GUI - LocalScript
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local player = game.Players.LocalPlayer
 
-local textos = {
-	"La grande",
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "ZL Finder GUI"
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main Frame
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 400, 0, 300)
+main.Position = UDim2.new(0.5, -200, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Parent = gui
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundTransparency = 1
+title.Text = "ZL Auto Joiner"
+title.TextColor3 = Color3.fromRGB(255, 0, 0)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.Parent = main
+
+-- ScrollingFrame
+local scroll = Instance.new("ScrollingFrame")
+scroll.Position = UDim2.new(0, 10, 0, 50)
+scroll.Size = UDim2.new(1, -20, 1, -60)
+scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+scroll.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 0)
+scroll.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+scroll.Parent = main
+
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 5)
+layout.Parent = scroll
+
+-- Textos falsos
+local fakeTexts = {
+	"La Grande Combi",
 	"Garama",
 	"Dragon",
-	"Meowl"
+	"Mewol"
+	"Lavadoritp,
 }
 
--- GUI principal
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ZLFinderGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+-- Crear entradas
+for i = 1, 10 do
+	local entry = Instance.new("Frame")
+	entry.Size = UDim2.new(1, -10, 0, 40)
+	entry.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	entry.Parent = scroll
 
--- Frame principal
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 450, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(0.7, 0, 1, 0)
+	text.BackgroundTransparency = 1
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.Text = fakeTexts[math.random(#fakeTexts)]
+	text.TextColor3 = Color3.fromRGB(255, 255, 255)
+	text.Font = Enum.Font.Gotham
+	text.TextSize = 14
+	text.Parent = entry
 
--- Título
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Title.Text = "ZL Auto Joiner"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.Parent = MainFrame
+	local join = Instance.new("TextButton")
+	join.Size = UDim2.new(0.3, -5, 0.8, 0)
+	join.Position = UDim2.new(0.7, 5, 0.1, 0)
+	join.Text = "Join"
+	join.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+	join.TextColor3 = Color3.fromRGB(255, 255, 255)
+	join.Font = Enum.Font.GothamBold
+	join.TextSize = 14
+	join.Parent = entry
 
--- ScrollFrame
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, -20, 1, -60)
-ScrollFrame.Position = UDim2.new(0, 10, 0, 50)
-ScrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ScrollFrame.BorderSizePixel = 0
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.ScrollBarImageTransparency = 0
-ScrollFrame.Parent = MainFrame
-
--- Layout
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 10)
-UIListLayout.Parent = ScrollFrame
-
--- Función Kick
-local function kickPlayer(nombre)
-	player:Kick(
-		"TONTO COMO PIENSAS QUE ZL ES TAN PENDEJO\n\n" ..
-		"Intentaste unirte a: " .. nombre
-	)
-end
-
--- Crear items
-for _, texto in ipairs(textos) do
-	local ItemFrame = Instance.new("Frame")
-	ItemFrame.Size = UDim2.new(1, -10, 0, 60)
-	ItemFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	ItemFrame.BorderSizePixel = 0
-	ItemFrame.Parent = ScrollFrame
-
-	local Label = Instance.new("TextLabel")
-	Label.Size = UDim2.new(0.6, 0, 1, 0)
-	Label.Position = UDim2.new(0, 10, 0, 0)
-	Label.BackgroundTransparency = 1
-	Label.Text = texto
-	Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	Label.Font = Enum.Font.GothamBold
-	Label.TextSize = 16
-	Label.TextXAlignment = Enum.TextXAlignment.Left
-	Label.Parent = ItemFrame
-
-	local JoinButton = Instance.new("TextButton")
-	JoinButton.Size = UDim2.new(0, 100, 0, 35)
-	JoinButton.Position = UDim2.new(1, -110, 0.5, -17)
-	JoinButton.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
-	JoinButton.Text = "Join"
-	JoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-	JoinButton.Font = Enum.Font.GothamBold
-	JoinButton.TextSize = 14
-	JoinButton.Parent = ItemFrame
-
-	JoinButton.MouseButton1Click:Connect(function()
-		kickPlayer(texto)
+	join.MouseButton1Click:Connect(function()
+		player:Kick("😂 ZL no existe bro\nGracias por intentar auto-join 😭")
 	end)
 end
 
--- Ajustar CanvasSize automáticamente
-UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-	ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
+-- Ajustar scroll
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 end)
