@@ -23,11 +23,12 @@ container.Parent = screenGui
 
 -- Lista de notificaciones de ejemplo (puedes cambiar estos textos)
 local notificationTexts = {
-	"¡Bienvenido al juego!",
-	"Nueva misión disponible",
-	"Has ganado 100 monedas",
-	"Logro desbloqueado",
-	"Evento especial activo"
+	"Garama and Madundung",
+	"Tang Tang Keletang",
+	"Dragon Cannelloni",
+	"La Supreme Combinasion",
+	"Secret Lucky Block",
+	"Capitano Moby",
 }
 
 local currentIndex = 1
@@ -85,24 +86,25 @@ end
 local function showNotification(text)
 	-- Crear notificación
 	local notif = createNotification(text)
-	notif.Position = UDim2.new(1, 0, 0, 0)
+	notif.Position = UDim2.new(1, 0, 0, #activeNotifications * 80)
 	notif.Parent = container
 	
-	-- Agregar a la lista
+	-- Agregar a la lista al final (abajo)
 	table.insert(activeNotifications, notif)
 	
 	-- Eliminar notificaciones antiguas si hay demasiadas
 	if #activeNotifications > maxNotifications then
-		local oldNotif = table.remove(activeNotifications, 1)
+		local oldNotif = activeNotifications[1]
+		table.remove(activeNotifications, 1)
 		local fadeOut = TweenService:Create(oldNotif, TweenInfo.new(0.3), {BackgroundTransparency = 1})
 		fadeOut:Play()
 		fadeOut.Completed:Connect(function()
 			oldNotif:Destroy()
+			repositionNotifications()
 		end)
 	end
 	
 	-- Animar entrada
-	repositionNotifications()
 	local slideIn = TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Back), {Position = UDim2.new(0, 0, 0, (#activeNotifications - 1) * 80)})
 	slideIn:Play()
 	
@@ -125,14 +127,11 @@ local function showNotification(text)
 	end
 end
 
--- Loop principal para mostrar notificaciones cada 3 segundos
+-- Loop principal para mostrar notificaciones cada 1 segundo con textos aleatorios
 while true do
-	showNotification(notificationTexts[currentIndex])
+	-- Seleccionar un texto aleatorio
+	local randomIndex = math.random(1, #notificationTexts)
+	showNotification(notificationTexts[randomIndex])
 	
-	currentIndex = currentIndex + 1
-	if currentIndex > #notificationTexts then
-		currentIndex = 1
-	end
-	
-	task.wait(3)
+	task.wait(1)
 end
